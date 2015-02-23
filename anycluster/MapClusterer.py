@@ -592,8 +592,8 @@ class MapClusterer():
                 
 
             else:
-                
-                if type(values) == str or type(values) == bool:
+
+                if type(values) == str or bool or int or float:
                     operator = operator_mapping[operator_pre]
                     sql_value = self.parseFilterValue(operator_pre, values)
                     
