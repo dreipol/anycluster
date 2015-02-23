@@ -859,7 +859,7 @@ class MapClusterer():
         second, the list is converted to a string
     ---------------------------------------------------------------------------------------------------------------------------------'''
 
-    def getGeomFilterstring(self, geojson=None):
+    def getGeomFilterstring(self, request, geojson=None):
 
         geomfilterstring = ""
 

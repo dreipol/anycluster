@@ -57,7 +57,7 @@ def loadAreaContent(request, zoom=1, gridSize=256):
 
     geojson = params.get("geojson", None)
 
-    geomfilterstring = clusterer.getGeomFilterstring(geojson)
+    geomfilterstring = clusterer.getGeomFilterstring(request, geojson)
 
 
     markers_qryset = Gis.objects.raw(
