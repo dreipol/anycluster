@@ -131,7 +131,7 @@ class MapClusterer():
     # read the srid of the database. 
     def getDatabaseSRID(self):
 
-        srid_qry = 'SELECT id, ST_SRID(%s) FROM "%s" LIMIT 1;' % (
+        srid_qry = 'SELECT id, ST_SRID(%s) FROM %s LIMIT 1;' % (
             geo_column_str, geo_table)
         srid_db_objs = Gis.objects.raw(srid_qry)
 
