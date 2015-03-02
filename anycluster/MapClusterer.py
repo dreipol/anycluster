@@ -660,11 +660,11 @@ class MapClusterer():
         - perform a raw query on the database, pass the result to phase 2 (distanceCluster) and return the result
     ---------------------------------------------------------------------------------------------------------------------------------'''
 
-    def kmeansCluster(self, request, custom_filterstring="", geo_table=geo_table):
+    def kmeansCluster(self, request, custom_filterstring="", from_table=geo_table):
 
         """
 
-        :type geo_table: str|unicode
+        :type from_table: str|unicode
         """
         params = self.loadJson(request)
 
@@ -688,14 +688,14 @@ class MapClusterer():
                     SELECT kmeans AS id, count(*), ST_AsText(ST_Centroid(ST_Collect({geo_column}))) AS {geo_column} {pin_0}
                     FROM (
                       SELECT {pin_1} kmeans(ARRAY[ST_X({geo_column}), ST_Y({geo_column})], {k}) OVER () AS kmeans, {geo_column}
-                      FROM {geo_table} WHERE {geo_column} IS NOT NULL AND ST_Intersects({geo_column}, ST_GeometryFromText('{ewkt}') ) {filter}
+                      FROM {from_table} WHERE {geo_column} IS NOT NULL AND ST_Intersects({geo_column}, ST_GeometryFromText('{ewkt}') ) {filter}
                     ) AS ksub
 
                     GROUP BY id
                     ORDER BY kmeans;
 
                 '''.format(geo_column=geo_column_str, pin_0=pin_qry[0], pin_1=pin_qry[1], k=k,
-                           geo_table=geo_table, ewkt=geos_geometry.ewkt, filter=filterstring)
+                           from_table=from_table, ewkt=geos_geometry.ewkt, filter=filterstring)
 
                 kclusters_queryset = Gis.objects.raw(query)
 
@@ -817,7 +817,7 @@ class MapClusterer():
         NON-CLUSTERING FUNCTIONS
     ---------------------------------------------------------------------------------------------------------------------------------'''
     # return all IDs of the pins contained by a cluster
-    def getKmeansClusterContent(self, request, custom_filterstring = ""):
+    def getKmeansClusterContent(self, request, custom_filterstring = "", from_table=geo_table):
 
         params = self.loadJson(request)
 
@@ -838,16 +838,16 @@ class MapClusterer():
         filterstring = self.constructFilterstring(filters)
 
         filterstring += custom_filterstring
-
-        entries_queryset = Gis.objects.raw('''
-                    SELECT * FROM ( 
-                      SELECT kmeans(ARRAY[ST_X(%s), ST_Y(%s)], %s) OVER () AS kmeans, "%s".*
-                      FROM %s WHERE %s IS NOT NULL AND ST_Intersects(%s, ST_GeometryFromText('%s', %s) ) %s
+        query = u'''
+                    SELECT * FROM (
+                      SELECT kmeans(ARRAY[ST_X({geo_column}), ST_Y({geo_column})], {base_k}) OVER () AS kmeans, {geo_table}.*
+                      FROM {from_table} WHERE {geo_column} IS NOT NULL AND ST_Intersects({geo_column}, ST_GeometryFromText('{poly}', {srid}) ) {filter}
                     ) AS ksub
-                    WHERE kmeans IN (%s)
-                    ''' % (geo_column_str, geo_column_str, BASE_K, geo_table,
-                           geo_table, geo_column_str, geo_column_str, poly, self.srid_db, filterstring,
-                           kmeans_string ))
+                    WHERE kmeans IN ({kmeans_filter})
+                    '''.format(geo_column=geo_column_str, base_k=BASE_K, geo_table=geo_table,
+                               from_table=from_table, poly=poly, srid=self.srid_db, filter=filterstring,
+                               kmeans_filter=kmeans_string)
+        entries_queryset = Gis.objects.raw(query)
 
         return entries_queryset
 
