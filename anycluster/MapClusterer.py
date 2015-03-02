@@ -96,8 +96,7 @@ if DEBUG is False:
 
     Gis = get_model(geoapp, geomodel)
 
-    geo_table = Gis._meta.db_table
-    
+    geo_table = '"{0}"'.format(Gis._meta.db_table)
 
 if DEBUG:
     # some viewports for debugging using the python shell
@@ -659,10 +658,14 @@ class MapClusterer():
         KMEANS CLUSTERING
         - cluster only if 1. the geometry contains a new area or 2. the filters changed
         - perform a raw query on the database, pass the result to phase 2 (distanceCluster) and return the result
-    ---------------------------------------------------------------------------------------------------------------------------------'''        
+    ---------------------------------------------------------------------------------------------------------------------------------'''
 
-    def kmeansCluster(self, request, custom_filterstring=""):
+    def kmeansCluster(self, request, custom_filterstring="", geo_table=geo_table):
 
+        """
+
+        :type geo_table: str|unicode
+        """
         params = self.loadJson(request)
 
         clusterGeometries = self.getClusterGeometries(request, params, "kmeans")
@@ -680,21 +683,22 @@ class MapClusterer():
 
                 geos_geometry = geometry_dic["geos"]
                 k = geometry_dic["k"]
-   
-                kclusters_queryset = Gis.objects.raw('''
-                    SELECT kmeans AS id, count(*), ST_AsText(ST_Centroid(ST_Collect(%s))) AS %s %s
-                    FROM ( 
-                      SELECT %s kmeans(ARRAY[ST_X(%s), ST_Y(%s)], %s) OVER () AS kmeans, %s
-                      FROM "%s" WHERE %s IS NOT NULL AND ST_Intersects(%s, ST_GeometryFromText('%s') ) %s
+
+                query = u'''
+                    SELECT kmeans AS id, count(*), ST_AsText(ST_Centroid(ST_Collect({geo_column}))) AS {geo_column} {pin_0}
+                    FROM (
+                      SELECT {pin_1} kmeans(ARRAY[ST_X({geo_column}), ST_Y({geo_column})], {k}) OVER () AS kmeans, {geo_column}
+                      FROM {geo_table} WHERE {geo_column} IS NOT NULL AND ST_Intersects({geo_column}, ST_GeometryFromText('{ewkt}') ) {filter}
                     ) AS ksub
 
                     GROUP BY id
                     ORDER BY kmeans;
-                    
-                ''' % (geo_column_str, geo_column_str, pin_qry[0],
-                       pin_qry[1], geo_column_str, geo_column_str, k, geo_column_str,
-                       geo_table, geo_column_str, geo_column_str, geos_geometry.ewkt, filterstring) )
-            
+
+                '''.format(geo_column=geo_column_str, pin_0=pin_qry[0], pin_1=pin_qry[1], k=k,
+                           geo_table=geo_table, ewkt=geos_geometry.ewkt, filter=filterstring)
+
+                kclusters_queryset = Gis.objects.raw(query)
+
                 kclusters = list(kclusters_queryset)
 
                 kclusters = self.distanceCluster(kclusters)
@@ -784,7 +788,7 @@ class MapClusterer():
             # cursor.execute('''CREATE INDEX temp_gix ON temp_clusterareas USING GIST (polygon);''')
 
             gridcluster_queryset = '''
-                SELECT count(*) AS count, polygon FROM "%s", temp_clusterareas
+                SELECT count(*) AS count, polygon FROM %s, temp_clusterareas
                 WHERE coordinates IS NOT NULL AND ST_Intersects(coordinates, polygon) %s
                 GROUP BY polygon
             ''' % (geo_table, filterstring)
@@ -838,12 +842,12 @@ class MapClusterer():
         entries_queryset = Gis.objects.raw('''
                     SELECT * FROM ( 
                       SELECT kmeans(ARRAY[ST_X(%s), ST_Y(%s)], %s) OVER () AS kmeans, "%s".*
-                      FROM "%s" WHERE %s IS NOT NULL AND ST_Intersects(%s, ST_GeometryFromText('%s', %s) ) %s
+                      FROM %s WHERE %s IS NOT NULL AND ST_Intersects(%s, ST_GeometryFromText('%s', %s) ) %s
                     ) AS ksub
                     WHERE kmeans IN (%s)
-                    ''' %(geo_column_str, geo_column_str, BASE_K, geo_table,
-                          geo_table, geo_column_str, geo_column_str, poly, self.srid_db, filterstring,
-                          kmeans_string ))
+                    ''' % (geo_column_str, geo_column_str, BASE_K, geo_table,
+                           geo_table, geo_column_str, geo_column_str, poly, self.srid_db, filterstring,
+                           kmeans_string ))
 
         return entries_queryset
 
