@@ -29,7 +29,7 @@ def getGrid(request, zoom, gridSize=256):
 def getPins(request, zoom, gridSize, gt_filter=0):
 
     clusterer = MapClusterer(zoom, gridSize)
-
+    gt_filter = long(gt_filter)
     markers = clusterer.kmeansCluster(request, filter_gt_count=gt_filter)
     
     return HttpResponse(json.dumps(

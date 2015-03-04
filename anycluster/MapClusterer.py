@@ -692,7 +692,6 @@ class MapClusterer():
                     ) AS ksub
 
                     GROUP BY id
-                    HAVING count(*)>{gt_count}
                     ORDER BY kmeans;
 
                 '''.format(geo_column=geo_column_str, pin_0=pin_qry[0], pin_1=pin_qry[1], k=k,
@@ -714,8 +713,8 @@ class MapClusterer():
                         pinimg = cluster.pinimg
                     else:
                         pinimg = None
-
-                    markers.append({'ids': cluster.id, 'count': cluster.count, 'center': {
+                    if cluster.count > filter_gt_count:
+                        markers.append({'ids': cluster.id, 'count': cluster.count, 'center': {
                                 'x': point.x, 'y': point.y}, 'pinimg': pinimg})
 
 
