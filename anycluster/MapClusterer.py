@@ -660,7 +660,7 @@ class MapClusterer():
         - perform a raw query on the database, pass the result to phase 2 (distanceCluster) and return the result
     ---------------------------------------------------------------------------------------------------------------------------------'''
 
-    def kmeansCluster(self, request, custom_filterstring="", from_table=geo_table):
+    def kmeansCluster(self, request, custom_filterstring="", from_table=geo_table, filter_gt_count=0):
 
         """
 
@@ -692,10 +692,11 @@ class MapClusterer():
                     ) AS ksub
 
                     GROUP BY id
+                    HAVING count(*)>{gt_count}
                     ORDER BY kmeans;
 
                 '''.format(geo_column=geo_column_str, pin_0=pin_qry[0], pin_1=pin_qry[1], k=k,
-                           from_table=from_table, ewkt=geos_geometry.ewkt, filter=filterstring)
+                           from_table=from_table, ewkt=geos_geometry.ewkt, filter=filterstring, gt_count=filter_gt_count)
 
                 kclusters_queryset = Gis.objects.raw(query)
 
