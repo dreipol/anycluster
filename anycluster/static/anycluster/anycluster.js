@@ -359,6 +359,7 @@ Anycluster.prototype = {
 		this.clusterMethod = settings_.clusterMethod || "grid";
 		this.iconType = settings_.iconType || "exact";
 		this.gridSize = settings_.gridSize || 256;
+		this.gt_count = settings_.gt_count || 0;
 		this.mapType = settings_.mapType;
 		this.mapTypeId = settings_.mapTypeId || "HYBRID";
 		this.zoom = settings_.zoom || 3;
@@ -454,7 +455,7 @@ Anycluster.prototype = {
 	
 		this.loadStart();
 		
-		var url = this.baseURL + this.clusterMethod + '/' + this.zoom + '/' + this.gridSize + '/'; // + urlParams;
+		var url = this.baseURL + this.clusterMethod + '/' + this.zoom + '/' + this.gridSize + '/'+ this.gt_count + '/'; // + urlParams;
 
 		postParams = {
 			'geojson' : geoJson,
@@ -583,7 +584,7 @@ Anycluster.prototype = {
 		}
 		
 
-		var url = this.baseURL + "getAreaContent/" + this.zoom + '/' + this.gridSize + '/'
+		var url = this.baseURL + "getAreaContent/" + this.zoom + '/' + this.gridSize + '/';
 			
 		url = encodeURI(url);
 		var xhr = new XMLHttpRequest();
