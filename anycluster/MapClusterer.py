@@ -642,6 +642,7 @@ class MapClusterer():
 
                     processed_cluster.id.append(cluster.id)
                     processed_cluster.count += cluster.count
+                    processed_cluster.model_ids += cluster.model_ids
                     added = True
                     break
 
@@ -685,9 +686,9 @@ class MapClusterer():
                 k = geometry_dic["k"]
 
                 query = u'''
-                    SELECT kmeans AS id, count(*), ST_AsText(ST_Centroid(ST_Collect({geo_column}))) AS {geo_column} {pin_0}
+                    SELECT kmeans AS id, count(*), ST_AsText(ST_Centroid(ST_Collect({geo_column}))) AS {geo_column} {pin_0}, array_agg(accident_id) as model_ids
                     FROM (
-                      SELECT {pin_1} kmeans(ARRAY[ST_X({geo_column}), ST_Y({geo_column})], {k}) OVER () AS kmeans, {geo_column}
+                      SELECT id as accident_id, {pin_1} kmeans(ARRAY[ST_X({geo_column}), ST_Y({geo_column})], {k}) OVER () AS kmeans, {geo_column}
                       FROM {from_table} WHERE {geo_column} IS NOT NULL AND ST_Intersects({geo_column}, ST_GeometryFromText('{ewkt}') ) {filter}
                     ) AS ksub
 
@@ -695,7 +696,8 @@ class MapClusterer():
                     ORDER BY kmeans;
 
                 '''.format(geo_column=geo_column_str, pin_0=pin_qry[0], pin_1=pin_qry[1], k=k,
-                           from_table=from_table, ewkt=geos_geometry.ewkt, filter=filterstring, gt_count=filter_gt_count)
+                           from_table=from_table, ewkt=geos_geometry.ewkt, filter=filterstring,
+                           gt_count=filter_gt_count)
 
                 kclusters_queryset = Gis.objects.raw(query)
 
@@ -715,9 +717,7 @@ class MapClusterer():
                         pinimg = None
                     if cluster.count > filter_gt_count:
                         markers.append({'ids': cluster.id, 'count': cluster.count, 'center': {
-                                'x': point.x, 'y': point.y}, 'pinimg': pinimg})
-
-
+                            'x': point.x, 'y': point.y}, 'pinimg': pinimg, 'model_ids':  cluster.model_ids})
         return markers
 
 
