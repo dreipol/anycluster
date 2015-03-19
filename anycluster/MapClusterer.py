@@ -507,7 +507,7 @@ class MapClusterer():
 
         geom_copy_area_pixels = geom_copy.area * area_factor
 
-        new_k = (BASE_K / cellarea_pixels) * geom_copy_area_pixels
+        new_k = (float(BASE_K) / cellarea_pixels) * geom_copy_area_pixels
 
         if new_k > K_CAP:
             new_k = K_CAP
